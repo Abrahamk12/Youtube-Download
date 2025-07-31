@@ -1,140 +1,110 @@
-import yt_dlp, yt_dlp.YoutubeDL, tkinter as tk, os, shutil
+import yt_dlp
+import tkinter as tk
 from tkinter import messagebox, filedialog
-#region variablesexternas
-link = "vacio"
-#endregion
+import os, shutil
 
-#region Fuciones
+# ─── Funciones comunes ──────────────────────────────────────
+def mover_archivo(extension, destino):
+    carpeta = os.getcwd()
+    archivos = [f for f in os.listdir(carpeta) if f.endswith(extension)]
+    if archivos:
+        shutil.move(archivos[0], destino)
 
-# Función para mostrar un mensaje
-def moverDescarga(ruta_variable):
-    ruta_area_de_trabajo = os.getcwd()
-    archivos_mp4 = [archivo for archivo in os.listdir(ruta_area_de_trabajo) if archivo.endswith('.mp4')]
-    shutil.move(archivos_mp4[0], ruta_variable)
+def mostrar_mensaje(titulo, mensaje):
+    messagebox.showinfo(titulo, mensaje)
 
-def gescargar_video(url, ubicacion)->None:
-    ruta_variable = ubicacion
-    link = url
-    if(link != 'vacio'):
-        mostrar_mensaje_descarga()
-        ydl_opts = {
-            'format':'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
-            'outtmpl':'%(title)s.%(ext)s',
-            'merge_output_format': 'mp4',
+def mostrar_estado(estado):
+    estados = {
+        'descargando_video': "Descargando video...",
+        'descargando_audio': "Descargando música...",
+        'exito': "Descarga terminada. El archivo se movió correctamente.",
+        'error_video': "Hubo un problema con la descarga del video: {}",
+        'error_audio': "Hubo un problema con la descarga del audio: {}"
+    }
+    return estados.get(estado)
 
-            'postprocessors':[
-                {
-                    'key': 'FFmpegVideoConvertor',
-                    'preferedformat':'mp4'
-                }
-            ]
-        }
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([link])
-                moverDescarga(ruta_variable)
-                mostrar_mensaje_descarga_terminada()
-        except Exception as ex:
-            mostrar_mensaje_descarga_fallida(ex)
-            #print(f"Hubo un problema con la descarga del video: {ex}")
+# ─── Descarga de video ──────────────────────────────────────
+def descargar_video(url, destino):
+    opciones = {
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
+        'outtmpl': '%(title)s.%(ext)s',
+        'merge_output_format': 'mp4',
+        'postprocessors': [
+            {'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}
+        ]
+    }
+    try:
+        mostrar_mensaje('Aviso', mostrar_estado('descargando_video'))
+        with yt_dlp.YoutubeDL(opciones) as ydl:
+            ydl.download([url])
+        mover_archivo('.mp4', destino)
+        mostrar_mensaje('Aviso', mostrar_estado('exito'))
+    except Exception as e:
+        mostrar_mensaje('Aviso', mostrar_estado('error_video').format(e))
 
-def mostrar_mensaje_descarga_terminada()->None:
-    messagebox.showinfo('Aviso',"Descarga terminada, el archvio se encuentra en la carpeta del ejecutable")
-def mostrar_mensaje_descarga_fallida(ex)->None:
-    messagebox.showinfo('Aviso',f"Hubo un problema con la descarga del video: {ex}")
-def mostrar_mensaje_descarga()->None:
-    messagebox.showinfo('Aviso',f"Descargando video")
-#endregion
+# ─── Descarga de audio ──────────────────────────────────────
+def descargar_audio(url, destino):
+    opciones = {
+        'format': 'bestaudio/best',
+        'outtmpl': '%(title)s.%(ext)s',
+        'postprocessors': [
+            {
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192'
+            }
+        ]
+    }
+    try:
+        mostrar_mensaje('Aviso', mostrar_estado('descargando_audio'))
+        with yt_dlp.YoutubeDL(opciones) as ydl:
+            ydl.download([url])
+        mover_archivo('.mp3', destino)
+        mostrar_mensaje('Aviso', mostrar_estado('exito'))
+    except Exception as e:
+        mostrar_mensaje('Aviso', mostrar_estado('error_audio').format(e))
 
-#region VentanaPrincipal
-def __main__()->None:
-    #region configuracionVentana
-    # Crear la ventana principal
+# ─── Interfaz gráfica ───────────────────────────────────────
+def main():
     root = tk.Tk()
-    root.title("Descargador de videos")
+    root.title("Descargador de Video y Audio")
 
-    # Establecer las dimensiones de la ventana (ancho x alto)
-    # Dimensiones de la ventana
-    ancho_ventana = 480
-    alto_ventana = 120
+    # Centrar ventana
+    w, h = 550, 120
+    x = (root.winfo_screenwidth() // 2) - (w // 2)
+    y = (root.winfo_screenheight() // 2) - (h // 2)
+    root.geometry(f"{w}x{h}+{x}+{y}")
 
-    # Obtener el tamaño de la pantalla
-    ancho_pantalla = root.winfo_screenwidth()
-    alto_pantalla = root.winfo_screenheight()
+    ruta_destino = tk.StringVar()
 
-    # Calcular la posición centrada
-    pos_x = (ancho_pantalla // 2) - (ancho_ventana // 2)
-    pos_y = (alto_pantalla // 2) - (alto_ventana // 2)
-
-    # Establecer la geometría de la ventana
-    root.geometry(f"{ancho_ventana}x{alto_ventana}+{pos_x}+{pos_y}")
-    #endregion
-    #region variables
-    ruta_variable = tk.StringVar()
-    #endregion
-
-    #region funciones anidadas
-    # Variable para guardar la ruta
-    
     def seleccionar_carpeta():
-        ruta_carpeta = filedialog.askdirectory()
-        if ruta_carpeta:
-            ruta_variable.set(ruta_carpeta)
-    
-    def abrir_explorador():
-        ruta = ruta_variable.get()  # Establece aquí la ruta deseada
-        os.startfile(ruta)
+        carpeta = filedialog.askdirectory()
+        if carpeta:
+            ruta_destino.set(carpeta)
 
-    def descagrar():
-        gescargar_video(urlEntrada.get(), ruta_variable.get())
-        
-    #endregion
-    
-    #region label
-    # Crear el Label
-    ubicacion = tk.Label(root, text=f"Ubicacion:")
-    # Posicionar el Label
-    ubicacion.place(x=10, y=10)
+    def abrir_carpeta():
+        os.startfile(ruta_destino.get())
 
-    # Crear el Label
-    ruta = tk.Label(root, textvariable=ruta_variable)
-    # Posicionar el Label
-    ruta.place(x=70, y=10)
+    def ejecutar_descarga_video():
+        descargar_video(entry_url.get(), ruta_destino.get())
 
-    # Crear el Label
-    urlBusqueda = tk.Label(root, text="Ingrese la URL: ")
-    # Posicionar el Label
-    urlBusqueda.place(x=10, y=60)
-    #endregion
+    def ejecutar_descarga_audio():
+        descargar_audio(entry_url.get(), ruta_destino.get())
 
-    #region textbox
-    # Crear el widget Entry
-    urlEntrada = tk.Entry(root, width=50)
-    urlEntrada.pack(pady=10)
-    urlEntrada.place(x=100, y=60)
-    #endregion
+    # UI
+    tk.Label(root, text="Ubicación:").place(x=10, y=10)
+    tk.Label(root, textvariable=ruta_destino).place(x=80, y=10)
+    tk.Label(root, text="Ingrese la URL:").place(x=10, y=60)
 
-    #region botones
-    # Crear el Botón
-    buscarCarpeta = tk.Button(root, text="Seleccionar Carpeta", command=seleccionar_carpeta)
-    # Posicionar el Botón
-    buscarCarpeta.place(x=358, y=9)
+    entry_url = tk.Entry(root, width=50)
+    entry_url.place(x=120, y=60)
 
-    # Crear el Botón
-    descargar = tk.Button(root, text="Descargar", command=descagrar)
-    # Posicionar el Botón
-    descargar.place(x=410, y=54)
+    tk.Button(root, text="Seleccionar Carpeta", command=seleccionar_carpeta).place(x=415, y=8)
+    tk.Button(root, text="Descargar Video", command=ejecutar_descarga_video).place(x=415, y=50)
+    tk.Button(root, text="Descargar Música", command=ejecutar_descarga_audio).place(x=415, y=84)
+    tk.Button(root, text="Abrir Carpeta", command=abrir_carpeta).place(x=202, y=85)
 
-    # Crear el botón
-    boton_abrir = tk.Button(root, text="Abrir Carpeta", command=abrir_explorador)
-    boton_abrir.place(x=202, y=85)
-    #endregion
-
-    # Iniciar el bucle principal
     root.mainloop()
-#endregion
-#moverDescarga()
-#"""
+
 if __name__ == "__main__":
-    __main__()
-#"""
+    main()
