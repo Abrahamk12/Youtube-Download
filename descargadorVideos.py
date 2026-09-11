@@ -46,8 +46,14 @@ def descargar_video(url, destino):
 # ─── Descarga de audio ──────────────────────────────────────
 def descargar_audio(url, destino):
     opciones = {
-        'format': 'bestaudio/best',
+        'format': 'ba/b',
         'outtmpl': '%(title)s.%(ext)s',
+        'ignoreerrors': True,  # Ignora videos con error y pasa al siguiente
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
         'postprocessors': [
             {
                 'key': 'FFmpegExtractAudio',
@@ -57,6 +63,37 @@ def descargar_audio(url, destino):
         ]
     }
     try:
+        with yt_dlp.YoutubeDL(opciones) as ydl:
+            ydl.download([url])
+        
+        # Intenta mover los archivos descargados a la carpeta destino
+        carpeta = os.getcwd()
+        for archivo in os.listdir(carpeta):
+            if archivo.endswith('.mp3'):
+                shutil.move(os.path.join(carpeta, archivo), os.path.join(destino, archivo))
+                
+        mostrar_mensaje('Aviso', mostrar_estado('exito'))
+    except Exception as e:
+        mostrar_mensaje('Aviso', mostrar_estado('error_audio').format(e))
+"""
+def descargar_audio(url, destino):
+    opciones = {
+    'format': 'bestaudio/best',
+    'outtmpl': '%(title)s.%(ext)s',
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['web', 'mweb']
+        }
+    },
+    'postprocessors': [
+        {
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192'
+        }
+    ]
+}
+    try:
         mostrar_mensaje('Aviso', mostrar_estado('descargando_audio'))
         with yt_dlp.YoutubeDL(opciones) as ydl:
             ydl.download([url])
@@ -65,7 +102,7 @@ def descargar_audio(url, destino):
         time.sleep(3.5)
     except Exception as e:
         mostrar_mensaje('Aviso', mostrar_estado('error_audio').format(e))
-
+"""
 # ─── Interfaz gráfica ───────────────────────────────────────
 def main():
     root = tk.Tk()
