@@ -1,7 +1,7 @@
 import yt_dlp
 import tkinter as tk
 from tkinter import messagebox, filedialog
-import os, shutil
+import os, shutil, time
 
 # ─── Funciones comunes ──────────────────────────────────────
 def mover_archivo(extension, destino):
@@ -39,6 +39,7 @@ def descargar_video(url, destino):
             ydl.download([url])
         mover_archivo('.mp4', destino)
         mostrar_mensaje('Aviso', mostrar_estado('exito'))
+        time.sleep(3.5)
     except Exception as e:
         mostrar_mensaje('Aviso', mostrar_estado('error_video').format(e))
 
@@ -61,6 +62,7 @@ def descargar_audio(url, destino):
             ydl.download([url])
         mover_archivo('.mp3', destino)
         mostrar_mensaje('Aviso', mostrar_estado('exito'))
+        time.sleep(3.5)
     except Exception as e:
         mostrar_mensaje('Aviso', mostrar_estado('error_audio').format(e))
 
